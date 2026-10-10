@@ -1,2 +1,5 @@
 {:paths ["src"]
- :deps {org.clojure/core.match {:mvn/version "0.3.0"}}}
+ ;; DataScript and Reagent are expected to be provided by the consuming
+ ;; project. Use DataScript >= 0.18.7; 1.x is supported (see
+ ;; src/posh/plugin_base.cljc `conn-listeners`).
+ :deps {org.clojure/core.match {:mvn/version "1.0.0"}}}

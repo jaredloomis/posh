@@ -63,10 +63,23 @@
                                    (:schema @(first conns))))))))))
 
 
-;; Posh's state atoms are stored inside a listener in the meta data of
-;; the datascript conn
+;; Posh's state atoms are stored inside a listener registered on the
+;; DataScript conn. Where that listener registry lives changed between
+;; DataScript versions:
+;;   * 0.18.x and earlier: listeners sit in the conn's *metadata*, under
+;;     :listeners, as an atom.
+;;   * 1.0.0 and later: listeners moved into the conn's inner state atom
+;;     (the :atom field), under :listeners, as a plain map.
+;; conn-listeners normalises both so posh works on either version.
+(defn conn-listeners [conn]
+  (if-let [listeners (:listeners (meta conn))]
+    ;; DataScript <= 0.18.x
+    @listeners
+    ;; DataScript >= 1.0.0
+    (:listeners @(:atom conn))))
+
 (defn get-conn-var [dcfg conn var]
-  ((:posh-dispenser @(:listeners (meta conn))) var))
+  ((:posh-dispenser (conn-listeners conn)) var))
 
 (defn get-posh-atom [dcfg poshdb-or-conn]
   (if ((:conn? dcfg) poshdb-or-conn)

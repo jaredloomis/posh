@@ -152,6 +152,19 @@
      {:db @conn :schema schema :db-id :posh}
      pattern id)))
 
+;; The order in which datoms come back out of a pull analysis is an artifact
+;; of DataScript's internal index iteration order, which changed in DataScript
+;; 1.x (and is not part of posh's contract). Sort each db-id's datoms/patterns
+;; by their printed form so the assertions below compare content, not order,
+;; while still catching missing or duplicated entries.
+(defn- sort-analysis-colls [db-id->coll]
+  (into {} (map (fn [[db-id coll]] [db-id (sort-by pr-str coll)]) db-id->coll)))
+
+(defn- normalize-analysis [{:keys [datoms patterns] :as analysis}]
+  (-> analysis
+      (assoc :datoms   (sort-analysis-colls datoms))
+      (assoc :patterns (sort-analysis-colls patterns))))
+
 (deftest pull-reverse-one-component-test
   (let [->schema (fn [isComponent]
                    {:parent/id {:db/unique :db.unique/identity}
@@ -195,7 +208,8 @@
             (is (= with-isComponent without-isComponent)))
 
           (testing "results are correct"
-            (is (= expected with-isComponent))))
+            (is (= (normalize-analysis expected)
+                   (normalize-analysis with-isComponent)))))
 
         ;; direct
         [:parent/score :name]
